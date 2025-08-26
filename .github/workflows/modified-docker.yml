@@ -1,0 +1,304 @@
+name: Modified Docker images
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+-modified"
+  workflow_dispatch:
+    inputs:
+      peerdb:
+        description: 'Build peerdb image'
+        type: boolean
+        default: false
+      flow-worker:
+        description: 'Build flow-worker image'
+        type: boolean
+        default: true
+      flow-api:
+        description: 'Build flow-api image'
+        type: boolean
+        default: true
+      flow-snapshot-worker:
+        description: 'Build flow-snapshot-worker image'
+        type: boolean
+        default: true
+      flow-maintenance:
+        description: 'Build flow-maintenance image'
+        type: boolean
+        default: true
+      peerdb-ui:
+        description: 'Build peerdb-ui image'
+        type: boolean
+        default: false
+
+jobs:
+  # 共享準備工作
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      sha_short: ${{ steps.vars.outputs.sha_short }}
+      registry: ${{ steps.vars.outputs.registry }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: generate or hydrate protos
+        uses: ./.github/actions/genprotos
+        
+      - name: Set variables
+        id: vars
+        run: |
+          echo "sha_short=modified-${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          echo "registry=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> $GITHUB_OUTPUT
+
+  # PeerDB Server
+  build-peerdb:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    if: inputs.peerdb == true
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: generate or hydrate protos
+        uses: ./.github/actions/genprotos
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push peerdb image
+        uses: docker/bake-action@v5
+        with:
+          files: ./docker-bake.hcl
+          targets: peerdb
+          set: |
+            peerdb.platform=linux/amd64
+          push: true
+        env:
+          SHA_SHORT: ${{ needs.prepare.outputs.sha_short }}
+          TAG: latest-modified
+          REGISTRY: ${{ needs.prepare.outputs.registry }}
+
+  # Flow Worker
+  build-flow-worker:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'push' || inputs.flow-worker == true
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: generate or hydrate protos
+        uses: ./.github/actions/genprotos
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push flow-worker image
+        uses: docker/bake-action@v5
+        with:
+          files: ./docker-bake.hcl
+          targets: flow-worker
+          set: |
+            flow-worker.platform=linux/amd64
+          push: true
+        env:
+          SHA_SHORT: ${{ needs.prepare.outputs.sha_short }}
+          TAG: latest-modified
+          REGISTRY: ${{ needs.prepare.outputs.registry }}
+
+  # Flow API
+  build-flow-api:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'push' || inputs.flow-api == true
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: generate or hydrate protos
+        uses: ./.github/actions/genprotos
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push flow-api image
+        uses: docker/bake-action@v5
+        with:
+          files: ./docker-bake.hcl
+          targets: flow-api
+          set: |
+            flow-api.platform=linux/amd64
+          push: true
+        env:
+          SHA_SHORT: ${{ needs.prepare.outputs.sha_short }}
+          TAG: latest-modified
+          REGISTRY: ${{ needs.prepare.outputs.registry }}
+
+  # Flow Snapshot Worker
+  build-flow-snapshot-worker:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'push' || inputs.flow-snapshot-worker == true
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: generate or hydrate protos
+        uses: ./.github/actions/genprotos
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push flow-snapshot-worker image
+        uses: docker/bake-action@v5
+        with:
+          files: ./docker-bake.hcl
+          targets: flow-snapshot-worker
+          set: |
+            flow-snapshot-worker.platform=linux/amd64
+          push: true
+        env:
+          SHA_SHORT: ${{ needs.prepare.outputs.sha_short }}
+          TAG: latest-modified
+          REGISTRY: ${{ needs.prepare.outputs.registry }}
+
+  # Flow Maintenance
+  build-flow-maintenance:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'push' || inputs.flow-maintenance == true
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: generate or hydrate protos
+        uses: ./.github/actions/genprotos
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push flow-maintenance image
+        uses: docker/bake-action@v5
+        with:
+          files: ./docker-bake.hcl
+          targets: flow-maintenance
+          set: |
+            flow-maintenance.platform=linux/amd64
+          push: true
+        env:
+          SHA_SHORT: ${{ needs.prepare.outputs.sha_short }}
+          TAG: latest-modified
+          REGISTRY: ${{ needs.prepare.outputs.registry }}
+
+  # PeerDB UI
+  build-peerdb-ui:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    if: inputs.peerdb-ui == true
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: generate or hydrate protos
+        uses: ./.github/actions/genprotos
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push peerdb-ui image
+        uses: docker/bake-action@v5
+        with:
+          files: ./docker-bake.hcl
+          targets: peerdb-ui
+          set: |
+            peerdb-ui.platform=linux/amd64
+          push: true
+        env:
+          SHA_SHORT: ${{ needs.prepare.outputs.sha_short }}
+          TAG: latest-modified
+          REGISTRY: ${{ needs.prepare.outputs.registry }}
+
+  # 構建總結
+  summary:
+    needs: [prepare, build-peerdb, build-flow-worker, build-flow-api, build-flow-snapshot-worker, build-flow-maintenance, build-peerdb-ui]
+    runs-on: ubuntu-24.04
+    if: always()
+    steps:
+      - name: Build Summary
+        run: |
+          echo "## Docker Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          # 檢查各個 job 的結果
+          echo "| peerdb | build-peerdb | ${{ needs.build-peerdb.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| flow-worker | build-flow-worker | ${{ needs.build-flow-worker.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| flow-api | build-flow-api | ${{ needs.build-flow-api.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| flow-snapshot-worker | build-flow-snapshot-worker | ${{ needs.build-flow-snapshot-worker.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| flow-maintenance | build-flow-maintenance | ${{ needs.build-flow-maintenance.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| peerdb-ui | build-peerdb-ui | ${{ needs.build-peerdb-ui.result }} |" >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Status Legend" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ **success**: Build completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "- ❌ **failure**: Build failed" >> $GITHUB_STEP_SUMMARY
+          echo "- ⏭️ **skipped**: Build was skipped (manual trigger with unchecked option)" >> $GITHUB_STEP_SUMMARY
+          echo "- 🚫 **cancelled**: Build was cancelled" >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "💡 **Tip**: Use 'Run workflow' to rebuild only specific failed images" >> $GITHUB_STEP_SUMMARY

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/go-mysql-org/go-mysql/client"
 	"github.com/go-mysql-org/go-mysql/mysql"
@@ -109,13 +110,29 @@ func (c *MySqlConnector) ValidateMirrorSource(ctx context.Context, cfg *protos.F
 		}
 	}
 
+	// Check if excluded columns functionality should be disabled
+	disableExcludedColumns := os.Getenv("PEERDB_MYSQL_DISABLE_EXCLUDED_COLUMNS") == "true"
+	
 	requireRowMetadata := false
+	hasExcludedColumns := false
+	
+	// Check if any table mapping has excluded columns
 	for _, tm := range cfg.TableMappings {
 		if len(tm.Exclude) > 0 {
-			requireRowMetadata = true
+			hasExcludedColumns = true
+			// Only require row metadata if excluded columns are not disabled
+			if !disableExcludedColumns {
+				requireRowMetadata = true
+			}
 			break
 		}
 	}
+	
+	// Validate configuration consistency
+	if disableExcludedColumns && hasExcludedColumns {
+		return errors.New("excluded columns are disabled via PEERDB_MYSQL_DISABLE_EXCLUDED_COLUMNS but table mappings contain excluded columns")
+	}
+	
 	if err := c.CheckBinlogSettings(ctx, requireRowMetadata); err != nil {
 		return fmt.Errorf("binlog configuration error: %w", err)
 	}

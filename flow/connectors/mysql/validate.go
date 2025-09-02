@@ -112,7 +112,6 @@ func (c *MySqlConnector) ValidateMirrorSource(ctx context.Context, cfg *protos.F
 
 	// Check if excluded columns functionality should be disabled
 	disableExcludedColumns := os.Getenv("PEERDB_MYSQL_DISABLE_EXCLUDED_COLUMNS") == "true"
-	
 	requireRowMetadata := false
 	hasExcludedColumns := false
 	
@@ -132,19 +131,21 @@ func (c *MySqlConnector) ValidateMirrorSource(ctx context.Context, cfg *protos.F
 	if disableExcludedColumns && hasExcludedColumns {
 		return errors.New("excluded columns are disabled via PEERDB_MYSQL_DISABLE_EXCLUDED_COLUMNS but table mappings contain excluded columns")
 	}
-	
-	if err := c.CheckBinlogSettings(ctx, requireRowMetadata); err != nil {
-		return fmt.Errorf("binlog configuration error: %w", err)
-	}
-	for conn, err := range c.withRetries(ctx) {
-		if err != nil {
-			return err
-		}
-		if err := peerdb_mysql.CheckRDSBinlogSettings(conn, c.logger); err != nil {
-			return fmt.Errorf("binlog configuration error: %w", err)
-		}
-	}
 
+	// The configuration check for binlog should only be performed if there are excluded fields.
+	if hasExcludedColumns {
+	    if err := c.CheckBinlogSettings(ctx, requireRowMetadata); err != nil {
+		    return fmt.Errorf("binlog configuration error: %w", err)
+	    }
+	    for conn, err := range c.withRetries(ctx) {
+		    if err != nil {
+			    return err
+		    }
+		    if err := peerdb_mysql.CheckRDSBinlogSettings(conn, c.logger); err != nil {
+			    return fmt.Errorf("binlog configuration error: %w", err)
+		    }
+	    }
+	}
 	return nil
 }
 
